@@ -35,4 +35,14 @@ public class SendMsgController {
         rabbitTemplate.convertAndSend(X_EXCHANGE,"XB",msg);
         return "消息："+msg+"发送成功";
     }
+
+    @GetMapping("sendMsgToQC/{msg}/{ttlTime}")
+    public void sendMsgToQC(@PathVariable("msg") String msg,@PathVariable("ttlTime") String ttlTime){
+        rabbitTemplate.convertAndSend(X_EXCHANGE,"XC",msg,correlationData->{
+            correlationData.getMessageProperties().setExpiration(ttlTime);
+            return correlationData;
+        });
+        log.info("当前时间：{}，发送一条时长：{}毫秒TTL消息给队列QC队列：{}",new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()),ttlTime,msg);
+    }
+
 }
