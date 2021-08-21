@@ -1,4 +1,4 @@
-package com.snym.publishconfirm;
+package com.snym.publish_confirm;
 
 import com.rabbitmq.client.Channel;
 import com.snym.utils.RabbitmqUtil;
