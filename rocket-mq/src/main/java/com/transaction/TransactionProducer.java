@@ -1,50 +1,55 @@
 package com.transaction;
 
+import io.netty.util.concurrent.DefaultThreadFactory;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.apache.rocketmq.common.message.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
- * 事物消息生产者
+ * 事务消息生产者
  *
  * @author lzs
  * @version 1.0
- * @date 2021/8/16 22:08
+ * @date 2022/1/8 17:15
  */
 public class TransactionProducer {
 
-    public static void main(String[] args) throws Exception {
+    private static final Logger logger = LoggerFactory.getLogger(TransactionProducer.class);
+
+    public static void main(String[] args) {
         TransactionMQProducer producer = new TransactionMQProducer("tpg");
-        producer.setNamesrvAddr("192.168.0.142:9876");
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(2000), new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r);
-                thread.setName("transaction-producer-thread");
-                return thread;
-            }
-        });
+        producer.setNamesrvAddr("192.168.0.113:9876");
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(2,
+                5,
+                100,
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(2000),
+                Executors.defaultThreadFactory(),
+                new ThreadPoolExecutor.AbortPolicy());
         //为生产者指定线程池
         producer.setExecutorService(threadPoolExecutor);
-        //为生产者添加事物监听器
+        //为生产者添加事务监听器
         producer.setTransactionListener(new ICBCTransactionListener());
         //启动生产者
-        producer.start();
-        String[] tags = {"tagA","tagB","tagC"};
-        for (int i = 0; i < 3; i++) {
-            byte[] body = ("transaction" + "-" + i).getBytes(StandardCharsets.UTF_8);
-            Message msg = new Message("transactionTopic", tags[i], body);
-            TransactionSendResult sendResult = producer.sendMessageInTransaction(msg, null);
-            System.out.println("发送结果为："+sendResult.getSendStatus());
-
+        try {
+            producer.start();
+            String[] tags = {"tagA","tagB","tagC"};
+            for (int i = 0; i < 3; i++) {
+                byte[] body = ("transaction message-" + i).getBytes(StandardCharsets.UTF_8);
+                Message message = new Message("transactionTopic", tags[i], body);
+                TransactionSendResult transactionSendResult = producer.sendMessageInTransaction(message, null);
+                System.out.println("消息发送结果："+transactionSendResult.getSendStatus());
+            }
+        } catch (MQClientException e) {
+            logger.error("启动生产者异常"+e);
+        } finally {
+            //producer.shutdown();
         }
-        //producer.shutdown();
     }
 }

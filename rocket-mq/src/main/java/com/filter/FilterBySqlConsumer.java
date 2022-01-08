@@ -11,23 +11,24 @@ import org.apache.rocketmq.common.message.MessageExt;
 import java.util.List;
 
 /**
- * 消息过滤消费者
+ * 过滤消息消费者
  *
  * @author lzs
  * @version 1.0
- * @date 2021/8/17 0:08
+ * @date 2022/1/8 19:09
  */
 public class FilterBySqlConsumer {
+
     public static void main(String[] args) throws Exception {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("cg");
-        consumer.setNamesrvAddr("192.168.0.142:9876");
+        consumer.setNamesrvAddr("192.168.0.113:9876");
+        consumer.subscribe("filterTopic", MessageSelector.bySql("age between 0 and 1"));
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-        consumer.subscribe("sqlTopic", MessageSelector.bySql("age between 0 and 6"));
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> list, ConsumeConcurrentlyContext consumeConcurrentlyContext) {
                 for (MessageExt messageExt : list) {
-                    System.out.println(new String(messageExt.getBody()));
+                    System.out.println(messageExt);
                 }
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }

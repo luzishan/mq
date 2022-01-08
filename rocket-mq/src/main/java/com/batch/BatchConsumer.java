@@ -4,39 +4,37 @@ import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 
 import java.util.List;
 
 /**
- * 批量消费
+ * 批量消息消费者
  *
  * @author lzs
  * @version 1.0
- * @date 2021/8/16 23:31
+ * @date 2022/1/8 18:52
  */
 public class BatchConsumer {
-    public static void main(String[] args) throws Exception {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("bcg");
-        consumer.setNamesrvAddr("192.168.0.142:9876");
+
+    public static void main(String[] args) throws MQClientException {
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("cg");
+        consumer.setNamesrvAddr("192.168.0.113:9876");
+        consumer.subscribe("batchTopic","*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-        consumer.subscribe("batchTopic","batchTag");
-        //设置每次可以消费的数量，默认为1
-        consumer.setConsumeMessageBatchMaxSize(10);
-        //设置每次可以从broker拉取的消息数量，默认为32
-        consumer.setPullBatchSize(40);
-        //注册消息监听器
+        consumer.setConsumeMessageBatchMaxSize(5);
+        consumer.setPullBatchSize(20);
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> list, ConsumeConcurrentlyContext consumeConcurrentlyContext) {
                 for (MessageExt messageExt : list) {
-                    System.out.println(new String(messageExt.getBody()));
+                    System.out.println(messageExt);
                 }
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
         consumer.start();
-        System.out.println("consumer started");
     }
 }
